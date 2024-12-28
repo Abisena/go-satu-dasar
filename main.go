@@ -21,6 +21,24 @@ func main() {
 		return name == "Anjing"
 	}
 	program.RegisterUser("Jauhara", blacklist)
+	// defer panic recover, ketika tidak true makan akan menghasilkan nil padasaat di recover
+	program.RunApp(false)
+	// struct menggunakan pointer
+	program.InsertCostumer(&program.Costumer{
+		Name:    "Muhamad Abisena",
+		Address: "Bojong",
+		Age:     18,
+	})
+	// struct method menggunakan pointer
+	pelanggan := &program.Pelanggan{
+		Name:    "Muhamad Abisena",
+		Address: "Bojong",
+		Age:     18,
+	}
+	pelanggan.InsertPelanggan()
+
+	named := &program.Named{Name: "Abisena"}
+	program.SayHello(named)
 }
 
 // func greet(prefix string, names ...string) {
