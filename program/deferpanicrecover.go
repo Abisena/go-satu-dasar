@@ -7,7 +7,7 @@ import (
 func Logging() {
 	fmt.Println("Aplikasi sudah selesai berjalan")
 
-	// recover adalah fungsi bawaan dari golang ketika terjadi panic di dalam program kita akan langsung dihentikan dan dianggap error yang tidak terdeteksi dari program
+	// recover adalah fungsi bawaan dari golang ketika terjadi panic di dalam program kita akan langsung dihentikan dan dianggap error yang tidak terdeteksi dari program biasanya akan disimpan didalam function terpisah antara panic dan recover
 	message := recover()
 	fmt.Println(message)
 }

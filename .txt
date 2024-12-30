@@ -1,0 +1,128 @@
+package main
+
+import (
+	"fmt"
+	"math/rand"
+	"sync"
+	"time"
+)
+
+// Ticket struct merepresentasikan tiket kereta
+type Ticket struct {
+	ID        int
+	Train     string
+	Passenger string
+}
+
+// Train struct merepresentasikan kereta dengan kapasitas tiket
+type Train struct {
+	Name           string
+	AvailableSeats int
+	Mutex          sync.Mutex
+}
+
+// BookingRequest merepresentasikan permintaan pemesanan tiket
+type BookingRequest struct {
+	Passenger string
+	Train     string
+}
+
+// BookingResponse merepresentasikan respons dari sistem pemesanan
+type BookingResponse struct {
+	Success bool
+	Ticket  *Ticket
+	Message string
+}
+
+// GenerateBookingID menghasilkan ID acak untuk tiket
+func GenerateBookingID() int {
+	rand.Seed(time.Now().UnixNano())
+	return rand.Intn(10000) + 1
+}
+
+// ProcessBooking menangani pemesanan tiket
+func (t *Train) ProcessBooking(request BookingRequest, responseChan chan<- BookingResponse) {
+	t.Mutex.Lock()
+	defer t.Mutex.Unlock()
+
+	if t.AvailableSeats > 0 {
+		t.AvailableSeats--
+		ticket := &Ticket{
+			ID:        GenerateBookingID(),
+			Train:     t.Name,
+			Passenger: request.Passenger,
+		}
+		responseChan <- BookingResponse{
+			Success: true,
+			Ticket:  ticket,
+			Message: fmt.Sprintf("Tiket berhasil dipesan untuk %s di kereta %s", request.Passenger, t.Name),
+		}
+	} else {
+		responseChan <- BookingResponse{
+			Success: false,
+			Message: fmt.Sprintf("Tiket habis untuk kereta %s", t.Name),
+		}
+	}
+}
+
+func EndApp() {
+	fmt.Println("Sistem pemesanan selesai.")
+}
+
+func main() {
+	defer EndApp()
+	// Inisialisasi data kereta
+	trains := map[string]*Train{
+		"Argo Bromo": {Name: "Argo Bromo", AvailableSeats: 5},
+		"Taksaka":    {Name: "Taksaka", AvailableSeats: 3},
+	}
+
+	// Channel untuk komunikasi antara proses pemesanan
+	requestChan := make(chan BookingRequest, 10)
+	responseChan := make(chan BookingResponse, 10)
+
+	// Goroutine untuk menangani pemesanan
+	go func() {
+		for request := range requestChan {
+			if train, exists := trains[request.Train]; exists {
+				train.ProcessBooking(request, responseChan)
+			} else {
+				responseChan <- BookingResponse{
+					Success: false,
+					Message: fmt.Sprintf("Kereta %s tidak ditemukan", request.Train),
+				}
+			}
+		}
+	}()
+
+	// Simulasi permintaan pemesanan tiket
+	go func() {
+		passengers := []string{"Andi", "Budi", "Citra", "Dewi", "Eko", "Fina", "Gilang"}
+		trainsList := []string{"Argo Bromo", "Taksaka"}
+
+		for i := 0; i < 10; i++ {
+			requestChan <- BookingRequest{
+				Passenger: passengers[rand.Intn(len(passengers))],
+				Train:     trainsList[rand.Intn(len(trainsList))],
+			}
+			time.Sleep(500 * time.Millisecond) // Simulasi waktu pemesanan
+		}
+		close(requestChan)
+	}()
+
+	// Proses respons pemesanan
+	go func() {
+		for response := range responseChan {
+			if response.Success {
+				fmt.Printf("[SUKSES] %s (Tiket ID: %d)\n", response.Message, response.Ticket.ID)
+			} else {
+				fmt.Printf("[GAGAL] %s\n", response.Message)
+			}
+		}
+	}()
+
+	// Tunggu hingga proses selesai
+	time.Sleep(6 * time.Second)
+	close(responseChan)
+	// fmt.Println("Sistem pemesanan selesai.")
+}
